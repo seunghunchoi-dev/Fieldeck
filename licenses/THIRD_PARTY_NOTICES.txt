@@ -1,0 +1,86 @@
+﻿Fieldeck — 오픈소스 소프트웨어 고지 (Third-Party Notices)
+============================================================
+본 프로그램에는 아래 오픈소스 소프트웨어가 포함되어 있습니다.
+각 라이선스 원문은 이 폴더의 하위 폴더에 있습니다.
+
+- PySide6_Essentials 6.12.0
+    용도: 화면(UI), RDP ActiveX 내장(QtAxContainer)
+    라이선스: LGPL-3.0
+    홈페이지: https://pyside.org
+    라이선스 파일: LGPL-3.0.txt, GPL-3.0.txt
+
+- PySide6_Addons 6.12.0
+    용도: PySide6 부가 모듈
+    라이선스: LGPL-3.0
+    홈페이지: https://pyside.org
+    라이선스 파일: LGPL-3.0.txt, GPL-3.0.txt
+
+- shiboken6 6.12.0
+    용도: PySide6 바인딩 런타임
+    라이선스: LGPL-3.0
+    홈페이지: https://pyside.org
+    라이선스 파일: LGPL-3.0.txt, GPL-3.0.txt
+
+- openpyxl 3.1.5
+    용도: 엑셀 백업·복원
+    라이선스: MIT
+    홈페이지: https://openpyxl.readthedocs.io
+    라이선스 파일: openpyxl/LICENCE.rst
+
+- et_xmlfile 2.0.0
+    용도: openpyxl 의존
+    라이선스: MIT
+    홈페이지: https://foss.heptapod.net/openpyxl/et_xmlfile
+    라이선스 파일: et-xmlfile/AUTHORS.txt, et-xmlfile/LICENCE.python, et-xmlfile/LICENCE.rst
+
+- msoffcrypto-tool 6.0.0
+    용도: 엑셀 파일 암호
+    라이선스: MIT
+    홈페이지: https://github.com/nolze/msoffcrypto-tool
+    라이선스 파일: msoffcrypto-tool/LICENSE.txt, msoffcrypto-tool/NOTICE.txt
+
+- olefile 0.47
+    용도: msoffcrypto-tool 의존
+    라이선스: BSD-2-Clause
+    홈페이지: https://github.com/decalage2/olefile
+    라이선스 파일: olefile/LICENSE.txt
+
+- cryptography 50.0.2
+    용도: msoffcrypto-tool 의존
+    라이선스: Apache-2.0 OR BSD-3-Clause
+    홈페이지: https://github.com/pyca/cryptography
+    라이선스 파일: cryptography/LICENSE, cryptography/LICENSE.APACHE, cryptography/LICENSE.BSD
+
+- cffi 2.1.1
+    용도: cryptography 의존
+    라이선스: MIT-0
+    홈페이지: https://cffi.readthedocs.io
+    라이선스 파일: cffi/LICENSE
+
+- pycparser 3.12
+    용도: cffi 의존
+    라이선스: BSD-3-Clause
+    홈페이지: https://github.com/eliben/pycparser
+    라이선스 파일: pycparser/LICENSE
+
+- pyinstaller 6.22.3
+    용도: 설치본 실행 파일(Fieldeck.exe) 실행기
+    라이선스: GPL-2.0-or-later WITH Bootloader-exception
+    홈페이지: https://pyinstaller.org
+    라이선스 파일: pyinstaller/COPYING.txt
+
+- Python 3.12.10
+    용도: 실행 환경
+    라이선스: PSF License (Python Software Foundation License Version 2)
+    홈페이지: https://www.python.org
+    라이선스 파일: python/LICENSE.txt
+
+[Qt for Python (PySide6) — LGPL-3.0 관련 안내]
+본 프로그램은 Qt for Python(PySide6, shiboken6) 및 Qt 라이브러리를 LGPL-3.0 조건으로
+수정 없이 사용하며, 이 라이브러리들은 별도 파일(DLL/PYD)로 동적 연결되어 있습니다.
+사용자는 이 파일들을 호환되는 다른 버전으로 교체할 수 있습니다.
+- 라이선스 원문: LGPL-3.0.txt, GPL-3.0.txt (이 폴더)
+- 소스 코드: https://code.qt.io/cgit/pyside/pyside-setup.git/ (태그 v6.12.0)
+             https://download.qt.io/official_releases/QtForPython/
+- Qt 구성 요소에 포함된 제3자 소프트웨어 목록: https://doc.qt.io/qt-6/licenses-used-in-qt.html
+요청 시 위 라이브러리의 해당 버전 소스 코드를 제공합니다.

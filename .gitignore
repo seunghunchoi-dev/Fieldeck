@@ -1,0 +1,24 @@
+# 가상환경·캐시
+.venv/
+__pycache__/
+*.pyc
+
+# 저장된 세션 목록·보관본 (접속 정보 — 절대 올리지 않음)
+config/
+
+# 내부 자료 (개소 IP·카메라 계정, 실제 화면 캡처가 든 설명서)
+*.xlsx
+*.xls
+*.pptx
+
+# 내부 작업 문서 (실제 IP·계정 기록 포함)
+CLAUDE.md
+설계문서.md
+진행상황.md
+
+# 이 PC 전용 바로가기
+*.lnk
+
+# 빌드 결과물 (설치 파일은 GitHub Releases로 배포)
+build/
+dist/
