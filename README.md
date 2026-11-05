@@ -20,8 +20,8 @@
 Windows 10/11 64비트에서 동작합니다.
 
 ## 사용 설명서
-[Fieldeck 사용 설명서 (PDF)](docs/Fieldeck-manual-ko.pdf) — 화면 구성, 대시보드, 원격 접속, 백업·로그, 자주 묻는 문제.
-설명서의 화면은 가상 장비로 만든 예시입니다.
+[Fieldeck Wiki](https://github.com/seunghunchoi-dev/Fieldeck/wiki)에서 바로 읽을 수 있습니다. 화면 구성, 대시보드, 원격 접속, 백업·로그, 자주 묻는 문제를 다룹니다.
+내려받아 보려면 [PDF](docs/Fieldeck-manual-ko.pdf)를 받으세요. 설명서의 화면은 가상 장비로 만든 예시입니다.
 
 ## 소스에서 실행 (개발)
 ```
