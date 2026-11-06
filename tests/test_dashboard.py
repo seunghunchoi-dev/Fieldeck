@@ -5,12 +5,14 @@
 import os
 import sys
 import tempfile
+import time
 import unittest
 
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
-from core.site_monitor import Device, ST_OFFLINE, ST_OK, ST_SLOW
+from core.conn_log import ConnLog
+from core.site_monitor import Device, ST_CHECKING, ST_OFFLINE, ST_OK, ST_SLOW
 from ui.dashboard import DashboardTab, DeviceCard
 
 app = QApplication.instance() or QApplication(sys.argv)
@@ -36,6 +38,18 @@ class DashboardLayoutTest(unittest.TestCase):
         self.dash.close()
         self.dash.deleteLater()
         app.processEvents()
+
+    def test_history_survives_restart_with_many_first_checks(self):
+        """재시작마다 장비 수만큼 쌓이는 '첫 확인' 줄에 지난 상태 변화가 밀려나지 않아야 함."""
+        log = ConnLog(os.path.join(tempfile.mkdtemp(), "logs"))
+        ts = time.time() - 100
+        log.device("A", "192.0.2.1:3389", ST_OK, ST_OFFLINE, ts=ts)
+        for i in range(366):
+            log.device("PC%d" % i, "192.0.2.2:3389", ST_CHECKING, ST_OFFLINE, ts=ts + 1)
+        self.dash.log = log
+        self.dash.load_history()
+        self.assertEqual(self.dash.events.count(), 1)
+        self.assertIn("A", self.dash.events.item(0).text())
 
     def load(self, sessions, states):
         self.dash.sessions = {s["name"]: dict(s) for s in sessions}

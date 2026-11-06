@@ -24,6 +24,7 @@ from ui.backup_dialog import (backup_logs, backup_to_excel, import_sites, open_l
                               restore_logs, save_template)
 from ui.dashboard import DashboardTab
 from ui.detached_window import DetachedWindow
+from ui.history_dialog import HistoryDialog
 from ui.icons import icon
 
 from ui.rdp_tab import (RdpTab, finish_release, STATE_CONNECTED, STATE_CONNECTING, STATE_DISCONNECTED, STATE_IDLE,
@@ -162,6 +163,7 @@ class MainWindow(QMainWindow):
         more_menu.addSeparator()
         more_menu.addAction(icon("monitors"), "장비 목록 가져오기…", self.import_sites)
         more_menu.addSeparator()
+        more_menu.addAction(icon("rows"), "접속 이력 보기…", lambda: HistoryDialog(self, self.log).exec())
         more_menu.addAction(icon("folder"), "연결 로그 폴더 열기", lambda: open_log_folder(self, self.log))
         more_menu.addAction(icon("download"), "연결 로그 백업…", lambda: backup_logs(self, self.log))
         more_menu.addAction(icon("upload"), "연결 로그 복원…", self.restore_logs)

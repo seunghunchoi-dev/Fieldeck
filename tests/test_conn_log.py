@@ -47,6 +47,19 @@ class ConnLogTest(unittest.TestCase):
         self.assertEqual([e["ts"] for e in self.log.recent(10, "장비")], [d2 + 5, d1])
         self.assertEqual(len(self.log.recent(1)), 1)
 
+    def test_empty_detail_does_not_leak_separator_into_event(self):
+        self.log.session("A", "h:1", "연결됨")
+        e = self.log.recent(1)[0]
+        self.assertEqual((e["event"], e["detail"]), ("연결됨", ""))
+
+    def test_recent_where_lines_do_not_use_up_limit(self):
+        ts = time.mktime((2026, 11, 3, 8, 0, 0, 0, 0, -1))
+        self.log.device("A", "a", "정상", "오프라인", ts=ts)
+        for i in range(10):
+            self.log.device("PC%d" % i, "h", "확인 중", "오프라인", ts=ts + 1 + i)
+        got = self.log.recent(3, "장비", where=lambda e: not e["event"].startswith("확인 중"))
+        self.assertEqual([e["name"] for e in got], ["A"])
+
     def test_backup_restore_after_reinstall(self):
         """백업 → 로그 폴더 통째로 사라짐(재설치 가정) → 복원하면 그대로."""
         ts = time.mktime((2026, 11, 3, 8, 0, 0, 0, 0, -1))

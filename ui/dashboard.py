@@ -952,8 +952,11 @@ class DashboardTab(QWidget):
         self.events_empty.show()
         if not self.log:
             return
-        for e in self.log.recent(300, KIND_DEVICE):          # 최신순
+        def is_change(e):
+            # 시작할 때마다 장비 수만큼 쌓이는 '첫 확인' 줄은 300개 한도에서 뺀다
             old, _, new = e["event"].partition(ARROW)
-            if not new or old == ST_CHECKING:
-                continue
+            return bool(new) and old != ST_CHECKING
+
+        for e in self.log.recent(300, KIND_DEVICE, where=is_change):          # 최신순
+            old, _, new = e["event"].partition(ARROW)
             self._add_event(e["ts"], e["name"], old, new, "%s  ·  %s" % (e["addr"], e["detail"]), at_top=False)

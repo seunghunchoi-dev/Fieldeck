@@ -57,6 +57,8 @@ def parse_line(line):
     line = line.rstrip("\r\n")
     if not LINE_RE.match(line):
         return None
+    if line.endswith(" |"):        # 상세가 비면 쓸 때 끝 공백이 잘려 " |"만 남는다
+        line = line[:-2]
     parts = line.split(SEP, 5)
     while len(parts) < 6:
         parts.append("")
@@ -143,8 +145,8 @@ class ConnLog:
         out = [(m.group(1), os.path.join(self.dir, n)) for n in names for m in [NAME_RE.match(n)] if m]
         return sorted(out)
 
-    def recent(self, limit=300, kind=None):
-        """최근 기록부터 최대 limit개 (dict 목록, 최신순)."""
+    def recent(self, limit=300, kind=None, where=None):
+        """최근 기록부터 최대 limit개 (dict 목록, 최신순). where(e)가 거짓인 줄은 limit에 세지 않는다."""
         out = []
         for _, path in reversed(self.files()):
             try:
@@ -154,7 +156,7 @@ class ConnLog:
                 continue
             for ln in reversed(lines):
                 e = parse_line(ln)
-                if e and (kind is None or e["kind"] == kind):
+                if e and (kind is None or e["kind"] == kind) and (where is None or where(e)):
                     out.append(e)
                     if len(out) >= limit:
                         return out

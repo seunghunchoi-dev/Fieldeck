@@ -258,6 +258,14 @@ QPushButton#devConnect:hover {{ background: {accent_hi}; }}
 QFrame#eventPanel {{ background: {surface}; border: 1px solid {border}; border-radius: 14px; }}
 QListWidget#events {{ background: transparent; border: none; font-size: 12px; }}
 QListWidget#events::item {{ padding: 6px 4px; border-bottom: 1px solid {border}; }}
+QTableWidget#historyTable {{
+    background: {surface}; color: {text}; border: 1px solid {border}; border-radius: 10px; font-size: 12px;
+    selection-background-color: {surface_hi}; selection-color: {text};
+}}
+QTableWidget#historyTable::item {{ padding: 4px 8px; border-bottom: 1px solid {border}; }}
+QTableWidget#historyTable QHeaderView::section {{
+    background: {surface_hi}; color: {muted}; border: none; padding: 6px 8px; font-size: 12px;
+}}
 
 /* 분리 창 끌어서 합치기 표시 */
 QLabel#dropHint {{
