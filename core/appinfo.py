@@ -12,7 +12,7 @@ import sys
 APP_NAME = "Fieldeck"
 APP_NAME_KO = "필덱"
 APP_ID = "Fieldeck.App"                 # Windows 작업 표시줄 앱 ID (바로가기와 같은 값)
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 TAGLINE = "원격 PC 다중 접속 · 현장 대시보드"
 
 

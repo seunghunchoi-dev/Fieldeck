@@ -26,7 +26,20 @@ def user_allowed():
     return getpass.getuser().lower() in users
 
 
+def enable_crash_log():
+    """프로그램이 강제 종료되면 그 순간의 Python 호출 위치를 logs\\crash.log 에 남긴다."""
+    import faulthandler
+    try:
+        os.makedirs(appinfo.log_dir(), exist_ok=True)
+        path = os.path.join(appinfo.log_dir(), "crash.log")
+        too_big = os.path.exists(path) and os.path.getsize(path) > 1024 * 1024
+        faulthandler.enable(open(path, "w" if too_big else "a", encoding="utf-8"))
+    except OSError:
+        pass    # 기록 파일을 못 열어도 프로그램은 실행
+
+
 def main():
+    enable_crash_log()
     # 작업 표시줄에 python 아이콘 대신 Fieldeck 아이콘이 보이도록 앱 ID 지정
     try:
         import ctypes

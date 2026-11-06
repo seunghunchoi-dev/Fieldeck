@@ -7,11 +7,13 @@
   PySide6에서는 dynamicCall("속성", "문자열")로 넘기면 문자열이 전달되지 않는다(주소·계정이 빈 값이 됨, 실기 확인).
   값을 리스트로 감싸 dynamicCall("속성", [값])으로 넘겨야 정상 반영된다.
 - UI 라이브러리: PySide6 (LGPL, 2026-11-03 PyQt6(GPL)에서 교체 — 설계문서 7장).
+- 컨트롤 해제는 _Releaser만 한다. clear() 안에서 컨트롤이 메시지를 처리하므로, 그 틈에 입력이
+  끼어들어 같은 탭을 닫을 수 있는 상태로 clear()를 부르면 해제된 메모리를 읽어 프로그램이 죽는다.
 """
 import time
 
 from PySide6.QtAxContainer import QAxWidget
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import QEventLoop, Qt, QTimer, Signal
 from PySide6.QtWidgets import (QApplication, QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea,
                                QStackedLayout, QVBoxLayout, QWidget)
 
@@ -37,6 +39,9 @@ _CONNECTED_MAP = {0: STATE_DISCONNECTED, 1: STATE_CONNECTED, 2: STATE_CONNECTING
 BACKOFF = [2, 4, 8, 15, 30]   # 초, 이후 30초 반복
 MAX_RETRIES = 10
 MAX_WAIT_NET = 600            # 네트워크 응답을 기다리는 최대 시간(초) — 넘으면 자동 재연결 중단
+CONNECT_TIMEOUT = 120         # '연결 중'이 이보다 길면 중단 (초). 정상은 1~2초, 실패도 보통 17초 안에 끝남.
+                              # 인증서 경고·비밀번호 입력 창에 답할 시간을 고려해 넉넉히 둔다.
+RELEASE_TIMEOUT = 10          # 연결 해제 완료를 기다리는 최대 시간 (초)
 NET_TYPE_AUTODETECT = 7       # CONNECTION_TYPE_AUTODETECT
 NET_TYPE_MODEM = 1            # 가장 낮은 대역폭 기준 (저속 모드)
 # 재연결하면 안 되는 끊김 (ExtendedDisconnectReason): 사용자/관리자가 끊음·로그아웃,
@@ -47,6 +52,74 @@ NO_RETRY_EXT = {1, 2, 5, 7, 9, 10, 11, 12}
 def _put(obj, name, value):
     """ActiveX(COM) 속성 설정. PySide6는 값을 리스트로 감싸야 문자열이 제대로 전달된다."""
     obj.dynamicCall(name, [value])
+
+
+class _Releaser:
+    """다 쓴 ActiveX 컨트롤을 화면과 분리한 뒤 뒤에서 하나씩 치운다.
+
+    탭은 컨트롤을 넘기는 순간 바로 사라지므로 닫기를 기다리며 화면이 멈추지 않고,
+    clear()가 도는 동안 끼어든 입력이 같은 컨트롤을 건드릴 수 없다.
+    """
+
+    def __init__(self):
+        self._items = []                  # [컨트롤, 기다림 마감 시각]
+        self._parking = QWidget()         # 치우는 동안 맡아 두는, 화면에 나오지 않는 부모
+        self._busy = False
+        self._timer = QTimer()
+        self._timer.setInterval(100)
+        self._timer.timeout.connect(self._step)
+
+    def add(self, ax):
+        ax.hide()
+        ax.setParent(self._parking)
+        if ax.dynamicCall("Connected"):
+            ax.dynamicCall("Disconnect()")
+        self._items.append([ax, time.monotonic() + RELEASE_TIMEOUT])
+        self._timer.start()
+
+    def pending(self):
+        return len(self._items)
+
+    def _step(self):
+        if self._busy:                    # clear() 안쪽에서 이 타이머가 다시 돌아도 겹치지 않게
+            return
+        self._busy = True
+        try:
+            now = time.monotonic()
+            for item in self._items:
+                ax, deadline = item
+                if not ax.dynamicCall("Connected") or now >= deadline:
+                    self._items.remove(item)
+                    ax.clear()
+                    ax.deleteLater()
+                    break                 # 한 번에 하나씩 (여러 탭을 닫아도 화면이 끊기지 않게)
+        finally:
+            self._busy = False
+            if not self._items:
+                self._timer.stop()
+
+    def finish(self, timeout):
+        """프로그램 종료 때 남은 컨트롤을 치운다 (마우스·키보드 입력은 받지 않음)."""
+        end = time.monotonic() + timeout
+        while self._items and time.monotonic() < end:
+            QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+            time.sleep(0.01)
+        return not self._items
+
+
+_releaser = None
+
+
+def releaser():
+    global _releaser
+    if _releaser is None:
+        _releaser = _Releaser()
+    return _releaser
+
+
+def finish_release(timeout=RELEASE_TIMEOUT):
+    """종료 직전 호출. 다 치웠으면 True."""
+    return _releaser is None or _releaser.finish(timeout)
 
 
 class _Holder(QWidget):
@@ -82,6 +155,10 @@ class RdpTab(QWidget):
         self._last_ext = 0            # 마지막 끊김 사유 코드 (ExtendedDisconnectReason, 로그용)
         self._countdown = 0
         self._wait_since = None
+        self._closed = False          # close_tab() 이후에는 아무것도 하지 않음
+        self._ax = None
+        self._ax_used = False         # 이 컨트롤로 접속을 시도했는지 (다시 연결은 새 컨트롤로)
+        self._connect_since = 0.0     # '연결 중'이 시작된 시각
         self._quality_from_thread.connect(self._on_quality)
         self._retry_timer = QTimer(self)
         self._retry_timer.setInterval(1000)
@@ -130,9 +207,7 @@ class RdpTab(QWidget):
         self._holder = _Holder(self)
         self._holder.setObjectName("rdpHolder")
         self._scroll.setWidget(self._holder)
-        self._ax = QAxWidget(self._holder)
-        if not self._ax.setControl(PROGID):
-            raise RuntimeError("원격 데스크톱 ActiveX(MsTscAx)를 불러올 수 없습니다.")
+        self._new_control()
         self._stack.addWidget(self._page)
         self._stack.addWidget(self._scroll)
 
@@ -149,6 +224,21 @@ class RdpTab(QWidget):
         self._resize_timer.setInterval(500)
         self._resize_timer.timeout.connect(self._apply_resize)
         self._last_applied = None
+
+    def _new_control(self):
+        ax = QAxWidget(self._holder)
+        if not ax.setControl(PROGID):
+            ax.deleteLater()
+            raise RuntimeError("원격 데스크톱 ActiveX(MsTscAx)를 불러올 수 없습니다.")
+        ax.show()
+        self._ax = ax
+        self._ax_used = False
+
+    def _drop_control(self):
+        """현재 컨트롤을 치우는 쪽으로 넘긴다."""
+        ax, self._ax = self._ax, None
+        if ax is not None:
+            releaser().add(ax)
 
     # --- 해상도 ---
     def _fit_mode(self):
@@ -191,7 +281,7 @@ class RdpTab(QWidget):
 
     def _layout_ax(self):
         """현재 보기 방식에 맞게 ActiveX 크기·위치 결정."""
-        if not hasattr(self, "view"):   # 생성 도중 호출 무시
+        if not hasattr(self, "view") or self._ax is None:   # 생성 도중·닫은 뒤 호출 무시
             return
         dw, dh = self.remote_size()
         vp = self._scroll.viewport().size()
@@ -231,10 +321,20 @@ class RdpTab(QWidget):
 
     # --- 공개 메서드 ---
     def connect_session(self):
-        if self.is_active():
+        if self._closed or self.is_active():
             return
         self._retry_timer.stop()
         self._user_stop = False
+        # 한 번 쓴 컨트롤은 다시 쓰지 않는다. 끊어지다 만 컨트롤에 Connect()하면 '연결 중'에서 멈출 수 있다.
+        if self._ax_used or self._ax is None:
+            self._drop_control()
+            try:
+                self._new_control()
+            except RuntimeError as e:
+                self._show_page("연결하지 못했어요", str(e), retry=True)
+                self._set_state(STATE_DISCONNECTED, str(e))
+                return
+        self._ax_used = True
         self._start_probe()
         s = self.session
         ax = self._ax
@@ -309,6 +409,8 @@ class RdpTab(QWidget):
             self._probe = None
 
     def _on_quality(self, q):
+        if self._closed:
+            return
         self.quality = q
         self.quality_changed.emit(q)
         if self.state == STATE_RECONNECTING:
@@ -376,35 +478,48 @@ class RdpTab(QWidget):
         self._show_page(title, "%s\n%s%s" % (msg, sig, low), retry=True, cancel=True)
         self._retry.setText("지금 다시 연결")
 
-    def close_tab(self, timeout=10.0):
-        """탭 닫기 전 호출 — 연결 해제가 끝날 때까지 기다린 뒤 ActiveX 해제.
+    def close_tab(self):
+        """탭 닫기 — 기다리지 않는다. 연결 해제와 ActiveX 정리는 _Releaser가 이어서 한다.
 
-        Disconnect()는 비동기라 바로 clear()하면 컨트롤이 멈출 수 있다 (실기 테스트에서 확인).
+        Disconnect()는 비동기라 바로 clear()하면 컨트롤이 멈출 수 있어(실기 확인) 해제를 기다리는데,
+        여기서 이벤트를 돌리며 기다리면 그 사이 다른 입력이 끼어들어 탭이 겹쳐 닫힌다 (설계문서 6-10).
         """
-        import time
-        from PySide6.QtWidgets import QApplication
-
+        if self._closed:
+            return
+        self._closed = True
         self._poll.stop()
         self._retry_timer.stop()
+        self._resize_timer.stop()
         self.stop_probe()
-        try:
-            if self._connected_value() != 0:
-                self._ax.dynamicCall("Disconnect()")
-                end = time.time() + timeout
-                while self._connected_value() != 0 and time.time() < end:
-                    QApplication.processEvents()
-                    time.sleep(0.05)
-        finally:
-            self._ax.clear()
+        self.state = STATE_IDLE
+        self._drop_control()
 
     # --- 내부 ---
     def _connected_value(self):
+        if self._ax is None:
+            return 0
         v = self._ax.dynamicCall("Connected")
         return int(v) if v is not None else 0
 
+    def _connect_timed_out(self):
+        """'연결 중'에서 답이 없을 때 — 끊고, 재연결 규칙에 따라 다시 시도하거나 안내한다."""
+        self._poll.stop()
+        self._ax.dynamicCall("Disconnect()")   # 이 컨트롤은 다음 접속 때 교체된다
+        self._last_ext = 0
+        prev = STATE_CONNECTED if self._ever_connected else STATE_CONNECTING
+        if self._should_retry(prev, 0) and self._schedule_retry():
+            return
+        detail = "%d초 넘게 응답이 없어 연결을 멈췄습니다." % CONNECT_TIMEOUT
+        self._show_page("연결하지 못했어요", detail, retry=True)
+        self._set_state(STATE_DISCONNECTED, detail)
+
     def _check_state(self):
+        if self._closed:
+            return
         new = _CONNECTED_MAP.get(self._connected_value(), STATE_DISCONNECTED)
         if new == self.state:
+            if new == STATE_CONNECTING and time.monotonic() - self._connect_since > CONNECT_TIMEOUT:
+                self._connect_timed_out()
             return
         detail = ""
         if new == STATE_DISCONNECTED:
@@ -443,6 +558,8 @@ class RdpTab(QWidget):
         return describe(self.quality)
 
     def _set_state(self, state, detail):
+        if state == STATE_CONNECTING and self.state != STATE_CONNECTING:
+            self._connect_since = time.monotonic()
         self.state = state
         self.state_changed.emit(state, detail)
 

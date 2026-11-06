@@ -26,7 +26,7 @@ from ui.dashboard import DashboardTab
 from ui.detached_window import DetachedWindow
 from ui.icons import icon
 
-from ui.rdp_tab import (RdpTab, STATE_CONNECTED, STATE_CONNECTING, STATE_DISCONNECTED, STATE_IDLE,
+from ui.rdp_tab import (RdpTab, finish_release, STATE_CONNECTED, STATE_CONNECTING, STATE_DISCONNECTED, STATE_IDLE,
                         STATE_RECONNECTING)
 from ui.signal_bars import SignalBars, bars_icon
 from ui.fullscreen_bar import FullscreenBar
@@ -542,8 +542,12 @@ class MainWindow(QMainWindow):
             return
         name = self._name_of(tab)
         self._log_session(tab, "탭 닫음", "사용자")
+        self.tabw.removeTab(idx)          # 화면에서 먼저 뺀다 → 같은 탭을 또 닫을 수 없음
+        self._discard_tab(tab, name)
+
+    def _discard_tab(self, tab, name):
+        """화면에서 빠진 탭 정리. 컨트롤 해제는 뒤에서 진행되므로 기다리지 않는다."""
         tab.close_tab()
-        self.tabw.removeTab(idx)
         tab.deleteLater()
         if name:
             self.tabs.pop(name, None)
@@ -652,14 +656,9 @@ class MainWindow(QMainWindow):
         win = self.detached.pop(tab, None)
         name = self._name_of(tab)
         self._log_session(tab, "탭 닫음", "사용자")
-        tab.close_tab()
-        tab.deleteLater()
         if win:
             win.deleteLater()
-        if name:
-            self.tabs.pop(name, None)
-            self._set_session_state(name, None)
-        self._refresh_chrome()
+        self._discard_tab(tab, name)
 
     def _tab_icon(self, tab):
         """연결됨이면 안테나 막대, 아니면 상태 점."""
@@ -854,6 +853,8 @@ class MainWindow(QMainWindow):
             win.close()
         for i in reversed(range(self.tabw.count())):
             self.close_tab_at(i)
+        self.hide()                       # 남은 정리는 창이 사라진 뒤에
+        finish_release()
         self.log.app("종료")
         self.log.flush()                  # 쓰기 스레드에 남은 기록까지 디스크에 확정
         super().closeEvent(e)
