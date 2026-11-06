@@ -67,7 +67,7 @@ def export_template(path):
 def export_sessions(path, sessions, include_password=False, file_password=None, template=False):
     """세션 목록을 엑셀로 저장. template=True면 빈 입력 양식.
 
-    화면의 백업은 암호 없는 일반 엑셀로 저장한다 (사용자 요청 2026-11-03).
+    화면의 백업은 암호 없는 일반 엑셀로 저장한다.
     file_password를 주면 엑셀 열기 암호를 건다 (지금 화면에서는 쓰지 않음).
     """
     from openpyxl import Workbook

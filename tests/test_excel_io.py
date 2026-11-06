@@ -48,7 +48,7 @@ class ExcelTest(unittest.TestCase):
         self.assertNotIn(b"pw1", blob)
 
     def test_plain_excel_with_passwords(self):
-        """화면 백업 방식: 암호 없는 일반 엑셀 + 비밀번호 포함 (2026-11-03 사용자 요청)."""
+        """화면 백업 방식: 암호 없는 일반 엑셀 + 비밀번호 포함."""
         excel_io.export_sessions(self.path, SESSIONS, include_password=True)
         self.assertFalse(excel_io.is_encrypted(self.path))
         rows, _, has_pw = excel_io.read_sessions(self.path)          # 암호 없이 바로 읽힘

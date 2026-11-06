@@ -43,7 +43,7 @@ class ExportDialog(QDialog):
         v.addWidget(_label("이름·그룹·주소·포트·계정·해상도·클립보드·즐겨찾기·메모·파일 전송 설정·마지막 접속까지\n"
                            "모든 항목이 저장됩니다. '엑셀에서 복원'으로 그대로 되살릴 수 있어요.", "heroSub"))
         v.addSpacing(6)
-        # 파일 암호 없이 일반 엑셀로 저장 (사용자 요청 2026-11-03). 기본은 비밀번호까지 모두 포함.
+        # 파일 암호 없이 일반 엑셀로 저장. 기본은 비밀번호까지 모두 포함.
         self.inc = QCheckBox("비밀번호(원격·전송)도 포함")
         self.inc.setChecked(True)
         self.inc.toggled.connect(self._toggle)
