@@ -215,7 +215,8 @@ QMenu::separator {{ height: 1px; background: {border}; margin: 4px 8px; }}
 
 QScrollBar:vertical {{ background: transparent; width: 8px; margin: 2px; }}
 QScrollBar::handle:vertical {{ background: {border}; border-radius: 4px; min-height: 30px; }}
-QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; }}
+QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; width: 0; }}
+QScrollBar::add-page, QScrollBar::sub-page {{ background: transparent; }}
 QMessageBox {{ background: {sidebar}; }}
 
 /* 신호 세기 (안테나 막대) */
